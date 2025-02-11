@@ -12,11 +12,23 @@ class Automaton:
         if state:
             self.states.add(state)
 
+
     def add_transition(self, source, input_symbol, destination):
         """Adds a transition to the automaton (works for both DFA & NFA)."""
+        if source not in self.states:
+            st.error(f"❌ Error: Source state '{source}' does not exist!")
+            return
+        if destination not in self.states:
+            st.error(f"❌ Error: Destination state '{destination}' does not exist!")
+            return
+    
+        # Create a unique key for each source-input_symbol pair
         if (source, input_symbol) not in self.transitions:
             self.transitions[(source, input_symbol)] = []
-        self.transitions[(source, input_symbol)].append(destination)
+        
+        # Add the transition if it doesn't exist
+        if destination not in self.transitions[(source, input_symbol)]:
+            self.transitions[(source, input_symbol)].append(destination)
 
     def set_start_state(self, state):
         """Sets the start state."""
@@ -45,62 +57,62 @@ class Automaton:
     def generate_from_input_string(self, input_string):
         """
         Generates an automaton dynamically from an input string:
-        - DFA: Ensures one transition per symbol per state.
-        - NFA: Allows multiple transitions for the same symbol.
-        Optimizes using self-loops.
+        - Ensures self-loops have unique symbols.
+        - Prevents duplicate transitions.
         """
         self.states.clear()
         self.transitions.clear()
         self.final_states.clear()
         self.start_state = None
-
+    
         if not input_string:
             st.error("❌ Error: Input string is empty!")
             return
-
-        # Create a single state if the string contains repeated characters
+    
         self.start_state = "q0"
         self.add_state("q0")
-
+    
         current_state = "q0"
+        last_state = None
+        seen_symbols = {}  # Dictionary to track self-loop symbols per state
+    
         for i, char in enumerate(input_string):
             next_state = f"q{i + 1}"
-
-            if (current_state, char) not in self.transitions:
-                # If no existing transition, create a new state or self-loop
-                if i < len(input_string) - 1:  # Avoid creating a new state for the last character
-                    self.add_state(next_state)
-                    self.add_transition(current_state, char, next_state)
-                    current_state = next_state
-                else:
-                    # Self-loop optimization for repeated characters
-                    self.add_transition(current_state, char, current_state)
-            else:
-                # Add self-loop for repeated input symbols
+    
+            # Initialize symbol tracking for the current state
+            if current_state not in seen_symbols:
+                seen_symbols[current_state] = set()
+    
+            # Only add a self-loop once per unique symbol
+            if char not in seen_symbols[current_state]:
                 self.add_transition(current_state, char, current_state)
-
-        # Set the final state as the last state
+                seen_symbols[current_state].add(char)
+    
+            if i < len(input_string) - 1:
+                self.add_state(next_state)
+                self.add_transition(current_state, char, next_state)
+                last_state = current_state
+                current_state = next_state
+    
+        # Add the final state
         self.add_final_state(current_state)
+
 
     def simulate_step_by_step(self, input_string):
         """Simulates the automaton step-by-step."""
         if not self.validate_automaton():
             return
-
         current_states = {self.start_state}
         for symbol in input_string:
             next_states = set()
             for state in current_states:
                 if (state, symbol) in self.transitions:
                     next_states.update(self.transitions[(state, symbol)])
-
             if not next_states:
                 yield list(current_states), False  # No valid transitions → rejection
                 return
-
             current_states = next_states
             yield list(current_states), None  # Intermediate step
-
         is_accepted = any(state in self.final_states for state in current_states)
         yield list(current_states), is_accepted  # Final state check
 

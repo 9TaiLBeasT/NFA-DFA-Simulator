@@ -83,8 +83,9 @@ with st.sidebar.expander("🗑 Modify Automaton"):
 
     # Clear the entire diagram
     if st.button("Clear Diagram"):
-        st.session_state.automaton.clear()
+        st.session_state.automaton.clear_automaton()  # Correct function call
         st.success("Automaton cleared!")
+
 
 # Display Automaton
 st.subheader("📌 Automaton Visualization")
