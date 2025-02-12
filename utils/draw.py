@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def draw_automaton(states, transitions, start_state=None, final_states=None, highlight_state=None):
+def draw_automaton(states, transitions, start_state=None, final_states=None, highlight_state=None, previous_states=None):
     G = nx.DiGraph()
 
     # Add nodes
@@ -26,13 +26,15 @@ def draw_automaton(states, transitions, start_state=None, final_states=None, hig
     node_colors = []
     for state in G.nodes:
         if state == highlight_state:
-            node_colors.append("yellow")  # Current active state
+            node_colors.append("#FFD700")  # Bright yellow for current state
+        elif previous_states and state in previous_states:
+            node_colors.append("#90EE90")  # Light green for previous states
         elif final_states and state in final_states:
-            node_colors.append("red")  # Final states in red
+            node_colors.append("#FF6B6B")  # Red for final states
         elif state == start_state:
-            node_colors.append("green")  # Start state in green
+            node_colors.append("#4CAF50")  # Green for start state
         else:
-            node_colors.append("skyblue")  # Default color
+            node_colors.append("#87CEEB")  # Sky blue for regular states
 
     # Positioning
     pos = nx.spring_layout(G, seed=42)  # Consistent layout
