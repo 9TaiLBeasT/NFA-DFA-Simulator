@@ -6,7 +6,7 @@ def draw_automaton(states, transitions, start_state=None, final_states=None,
                   highlight_state=None, previous_states=None):
     """Creates a visualization of the automaton using NetworkX and Matplotlib."""
     
-    G = nx.DiGraph()
+    G = nx.MultiDiGraph()  # Changed to MultiDiGraph to better handle multiple edges
     
     # Add nodes
     for state in states:
@@ -21,47 +21,58 @@ def draw_automaton(states, transitions, start_state=None, final_states=None,
                 combined_transitions[key] = set()
             combined_transitions[key].add(symbol)
     
-    # Add edges with labels
-    for (src, dest), symbols in combined_transitions.items():
-        label = ','.join(sorted(symbols))
-        G.add_edge(src, dest, label=label)
-    
-    # Node colors
-    node_colors = []
-    for state in G.nodes:
-        if state == highlight_state:
-            node_colors.append("#FFD700")  # Current state
-        elif previous_states and state in previous_states:
-            node_colors.append("#90EE90")  # Previous states
-        elif final_states and state in final_states:
-            node_colors.append("#FF6B6B")  # Final states
-        elif state == start_state:
-            node_colors.append("#4CAF50")  # Start state
-        else:
-            node_colors.append("#87CEEB")  # Regular states
-    
-    # Create layout
-    pos = nx.spring_layout(G, seed=42)
+    # Create layout with more space
+    pos = nx.spring_layout(G, k=2.0, seed=42)
     
     # Create figure
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Draw base graph
-    nx.draw(G, pos, with_labels=True, node_color=node_colors,
-            node_size=1500, edge_color="black", font_size=10, ax=ax)
+    # Draw nodes first
+    nx.draw_networkx_nodes(G, pos,
+                          node_color=['#FFD700' if state == highlight_state
+                                    else '#90EE90' if previous_states and state in previous_states
+                                    else '#FF6B6B' if final_states and state in final_states
+                                    else '#4CAF50' if state == start_state
+                                    else '#87CEEB' for state in G.nodes],
+                          node_size=1500)
     
-    # Add edge labels
-    edge_labels = {(src, dest): data["label"] 
-                  for src, dest, data in G.edges(data=True)}
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
+    # Draw node labels
+    nx.draw_networkx_labels(G, pos, font_size=10)
     
-    # Handle self-loops
-    for src, dest in G.edges():
+    # Handle edges and labels
+    edge_labels = {}
+    
+    for (src, dest), symbols in combined_transitions.items():
+        label = ','.join(sorted(symbols))
         if src == dest:
-            pos_offset = (pos[src][0] + 0.05, pos[src][1] + 0.05)
-            edge_labels[(src, dest)] = "\n".join(
-                sorted(combined_transitions[(src, dest)]))
+            # Self-loop
+            G.add_edge(src, dest, label=label)
+            # Draw self-loop with large arc
+            nx.draw_networkx_edges(G, pos,
+                                 edgelist=[(src, dest)],
+                                 connectionstyle=f'arc3, rad=0.5',
+                                 arrowsize=20)
+            # Position label above the loop
+            edge_labels[(src, dest)] = label
+        else:
+            # Regular transition
+            G.add_edge(src, dest, label=label)
+            nx.draw_networkx_edges(G, pos,
+                                 edgelist=[(src, dest)],
+                                 arrowsize=20)
+            edge_labels[(src, dest)] = label
     
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
+    # Draw edge labels with offset for better visibility
+    pos_attrs = {}
+    for (src, dest), label in edge_labels.items():
+        if src == dest:
+            # Position self-loop labels above the loop
+            pos_attrs[(src, dest)] = {'pos': (0.3, 0.3)}
     
+    nx.draw_networkx_edge_labels(G, pos,
+                                edge_labels=edge_labels,
+                                bbox=dict(facecolor='white', edgecolor='none', alpha=0.7),
+                                font_size=9)
+    
+    plt.axis('off')
     return fig

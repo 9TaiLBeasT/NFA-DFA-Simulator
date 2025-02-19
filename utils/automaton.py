@@ -301,30 +301,41 @@ def simulate_with_animation(input_string):
     """Simulates with animation support."""
     if not validate_automaton():
         return []
-    
+
     simulation_steps = []
     current_states = {start_state}
     previous_states = set()
-    
     simulation_steps.append((list(current_states), "", None, previous_states))
-    
+
+    dead_end_reached = False
+
     for i, symbol in enumerate(input_string):
         previous_states = current_states.copy()
         next_states = set()
-        
         for state in current_states:
             if (state, symbol) in transitions:
                 next_states.update(transitions[(state, symbol)])
-        
+
         if not next_states:
+            dead_end_reached = True
             simulation_steps.append((list(current_states), symbol, False, previous_states))
-            return simulation_steps
-        
+            break  # Exit the loop
+
         current_states = next_states
         is_final = i == len(input_string) - 1
         acceptance = is_final and any(state in final_states for state in current_states)
-        simulation_steps.append((list(current_states), symbol, 
-                               acceptance if is_final else None, 
-                               previous_states))
-    
-    return simulation_steps
+
+        simulation_steps.append((list(current_states), symbol,
+                                 acceptance if is_final else None,
+                                 previous_states))
+
+    if dead_end_reached:
+        return simulation_steps
+    else:
+        is_accepted = any(state in final_states for state in current_states)
+        #if simulation_steps: # Add this check
+        simulation_steps[-1] = (simulation_steps[-1][0], simulation_steps[-1][1], is_accepted, simulation_steps[-1][3])
+        return simulation_steps
+
+
+

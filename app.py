@@ -121,6 +121,7 @@ if st.button("Start Simulation"):
                 highlight_state=states[0] if states else None,
                 previous_states=previous_states
             )
+
             placeholder.pyplot(fig)
 
             if i > 0:
@@ -131,6 +132,7 @@ if st.button("Start Simulation"):
                 status_placeholder.info(status_text)
             time.sleep(1)
             plt.close(fig)
+
 
 # Advanced Operations
 st.sidebar.subheader("🔄 Advanced Operations")
